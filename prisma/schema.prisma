@@ -1,0 +1,63 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model user {
+  id               String    @id @default(dbgenerated("gen_random_uuid ( )"))
+  email            String    @unique
+  name             String
+  password         String
+  avatar           String?
+  friendsTo        user[]    @relation("UsertoUser")
+  friendsBy        user[]    @relation("UsertoUser")
+  chats            chat[]
+  messages         message[]
+  requestsMade     request[] @relation("request_sender")
+  requestsReceived request[] @relation("request_receiver")
+}
+
+model chat {
+  id            String    @id @default(dbgenerated("gen_random_uuid()"))
+  users         user[]
+  name          String?
+  lastMessage   message?  @relation("last_message", fields: [lastMessageId], references: [id])
+  lastMessageId String?   @unique
+  messages      message[] @relation("chat_messages")
+}
+
+model message {
+  id        String   @id @default(dbgenerated("gen_random_uuid()"))
+  content   String
+  lastIn    chat?    @relation("last_message")
+  chat      chat     @relation("chat_messages", fields: [chatId], references: [id])
+  chatId    String
+  timestamp DateTime @default(dbgenerated("now()"))
+  sender    user     @relation(fields: [senderId], references: [id])
+  senderId  String
+  isRead    Boolean  @default(false)
+
+  @@index([chatId, timestamp])
+}
+
+model request {
+  id         String   @id @default(dbgenerated("gen_random_uuid()"))
+  sender     user     @relation("request_sender", fields: [senderId], references: [id])
+  senderId   String
+  receiver   user     @relation("request_receiver", fields: [receiverId], references: [id])
+  receiverId String
+  timestamp  DateTime @default(dbgenerated("now()"))
+
+  @@unique([senderId, receiverId])
+  @@index([receiverId])
+}
