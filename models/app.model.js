@@ -51,9 +51,11 @@ export async function getUserChats(userId) {
 export async function getChatMessages(chatId) {
     try {
         let result = await prisma.message.findMany({
-            where: { chatId: chatId }
+            where: { chatId: chatId },
+            orderBy: { timestamp: 'asc' }
 
         })
+        // console.log(result);
         return result;
 
     } catch (error) {
@@ -66,8 +68,6 @@ export async function getUserFriendsRequestsTo(userId) {
         let result = await prisma.request.findMany({
             where: { receiverId: userId }
         })
-        console.log(result);
-
         return result;
     } catch (error) {
         throw "error while getting friends request sent to the user "
@@ -89,12 +89,17 @@ export async function markMessageAsRead(messageId) {
     try {
         let result = await prisma.message.update({
             data: {
-                isRead: true
+                isRead: true,
+                readAt: new Date()
             },
-            where: { id: messageId }
+            where: { id: messageId },
+            include: { chat: true }
+
         })
         return result;
     } catch (error) {
+        console.log(error);
+
         throw "error marking message as read"
     }
 }
@@ -116,15 +121,15 @@ export async function createFriendRequest(senderId, receiverId) {
 export async function acceptFriendRequest(requestId) {
 
     try {
-        let request = prisma.message.findUnique({
+        let request = await prisma.request.findUnique({
             where: { id: requestId }
         })
 
         if (!request) throw "request was not found"
 
-        const { senderId, receiverId } = result;
+        const { senderId, receiverId } = request;
 
-        const [_, sender, receiver, chat] = prisma.$transaction([
+        const [_, sender, receiver, chat] = await prisma.$transaction([
             prisma.request.delete({
                 where: { id: requestId }
             }),
@@ -138,10 +143,10 @@ export async function acceptFriendRequest(requestId) {
                 where: { id: receiverId },
                 select: userProfileSelect
             }),
-            prisma.chat.create({})
+            prisma.chat.create()
         ])
 
-        prisma.chat.update({
+        await prisma.chat.update({
             data: {
                 users: {
                     connect: [{ id: senderId }, { id: receiverId }]
@@ -155,6 +160,7 @@ export async function acceptFriendRequest(requestId) {
         return [sender, receiver]
 
     } catch (error) {
+        console.log(error);
         throw "error accepting friends request"
     }
 }

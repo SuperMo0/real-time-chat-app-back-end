@@ -46,8 +46,6 @@ export async function getUserFriendsRequestsBy(req, res) {
     try {
         const userId = req.userId
         let requestsBy = await model.getUserFriendsRequestsBy(userId);
-        console.log(requestsBy);
-
         res.json({ requestsBy });
     } catch (error) {
         console.log(error);
@@ -56,24 +54,36 @@ export async function getUserFriendsRequestsBy(req, res) {
 
 export async function markMessageAsRead(req, res) {
     try {
-        const userId = req.userId;
+        const userId = req.userId;  // make sure that current userId is the receiver of the message 
+
         const { messageId } = req.params;
+
+        console.log(messageId, '*****');
+
+
         let message = await model.markMessageAsRead(messageId);
-        res.json({ message });
-        // check if the other chat member is online and send him an update for the message
+
+        res.json({ message: 'ok' });
+
+        io.to(message.senderId).emit('messageUpdate', (message));
+        io.to(userId).emit('messageUpdate', (message));
+
     } catch (error) {
         console.log(error);
     }
 }
 
-
 export async function createFriendReqesut(req, res) {
     try {
         const userId = req.userId;
+
         const { receiverId } = req.params;
+
         let request = await model.createFriendRequest(userId, receiverId);
-        res.json({ request });
-        // check if receiver is online and update his friends requestTo data
+
+        res.status(201).json({ request });
+
+        io.to(receiverId).emit("requestsToUserUpdate", request);
     } catch (error) {
         console.log(error);
     }
@@ -83,11 +93,17 @@ export async function acceptFriendRequest(req, res) {
 
     try {
         const userId = req.userId; // make sure that the current user is the reciever of the request 
+
         const { requestId } = req.params;
+
         const [sender, receiver] = await model.acceptFriendRequest(requestId)
+
         res.json({ message: 'success' });
-        io.to(sender.id).emit("updateFriends", receiver);
-        io.to(receiver).emit("updateFriends", sender);
+
+        io.to(sender.id).emit("friendsUpdate", receiver);
+
+        io.to(receiver).emit("friendsUpdate", sender);
+
     } catch (error) {
         console.log(error);
     }
@@ -103,11 +119,11 @@ export async function createNewMessage(req, res) {
 
         const chat = await model.updateChatLastMessage(chatId, message)
 
-        res.status(201).json({ message: 'ok' });
-
         chat.users.forEach(user => {
             io.to(user.id).emit("chatUpdate", chat);
         });
+
+        res.status(201).json({ message: 'ok' });
 
     } catch (error) {
         console.log(error);

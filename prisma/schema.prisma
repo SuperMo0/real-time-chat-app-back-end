@@ -37,15 +37,16 @@ model chat {
 }
 
 model message {
-  id        String   @id @default(dbgenerated("gen_random_uuid()"))
+  id        String    @id @default(dbgenerated("gen_random_uuid()"))
   content   String
-  lastIn    chat?    @relation("last_message")
-  chat      chat     @relation("chat_messages", fields: [chatId], references: [id])
+  lastIn    chat?     @relation("last_message")
+  chat      chat      @relation("chat_messages", fields: [chatId], references: [id])
   chatId    String
-  timestamp DateTime @default(dbgenerated("now()"))
-  sender    user     @relation(fields: [senderId], references: [id])
+  timestamp DateTime  @default(dbgenerated("now()"))
+  sender    user      @relation(fields: [senderId], references: [id])
   senderId  String
-  isRead    Boolean  @default(false)
+  isRead    Boolean   @default(false)
+  readAt    DateTime?
 
   @@index([chatId, timestamp])
 }
@@ -57,6 +58,7 @@ model request {
   receiver   user     @relation("request_receiver", fields: [receiverId], references: [id])
   receiverId String
   timestamp  DateTime @default(dbgenerated("now()"))
+  isSeen     Boolean  @default(false)
 
   @@unique([senderId, receiverId])
   @@index([receiverId])
