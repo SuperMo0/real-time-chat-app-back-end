@@ -1,6 +1,6 @@
 import { Router } from "express";
-import protect from './../middlewares/protect.js'
-import * as controller from './../controllers/app.controller.js'
+import protect from '../middlewares/protect.js'
+import * as controller from '../controllers/chat.controller.js'
 
 
 const router = Router();
@@ -25,7 +25,7 @@ router.post('/message/:chatId', controller.createNewMessage);
 
 router.put('/request/:requestId', controller.acceptFriendRequest);
 
-router.put('/message/:messageId/seen', controller.markMessageAsRead);
+router.put('/chat/:chatId/read', controller.markChatAsRead);
 
 
 

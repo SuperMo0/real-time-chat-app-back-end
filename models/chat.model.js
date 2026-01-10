@@ -66,7 +66,8 @@ export async function getChatMessages(chatId) {
 export async function getUserFriendsRequestsTo(userId) {
     try {
         let result = await prisma.request.findMany({
-            where: { receiverId: userId }
+            where: { receiverId: userId },
+            include: { sender: { select: userProfileSelect } }
         })
         return result;
     } catch (error) {
@@ -94,7 +95,6 @@ export async function markMessageAsRead(messageId) {
             },
             where: { id: messageId },
             include: { chat: true }
-
         })
         return result;
     } catch (error) {
@@ -104,6 +104,43 @@ export async function markMessageAsRead(messageId) {
     }
 }
 
+export async function markChatAsRead(chatId, userId) {
+
+    try {
+        let result = await prisma.chat.update({
+            data: {
+                messages: {
+                    updateMany: {
+                        data: {
+                            isRead: true,
+                            readAt: new Date()
+                        },
+                        where: {
+                            NOT: { senderId: userId },
+                        }
+                    }
+                }
+            },
+            where: {
+                id: chatId
+            },
+            include: {
+                users: true
+            }
+
+        })
+        return result;
+
+    } catch (error) {
+        console.log(error);
+        throw "error marking chat as read"
+    }
+}
+
+
+
+
+
 export async function createFriendRequest(senderId, receiverId) {
     try {
         let result = await prisma.request.create({
@@ -111,6 +148,11 @@ export async function createFriendRequest(senderId, receiverId) {
                 senderId: senderId,
                 receiverId: receiverId,
             },
+            include: {
+                sender: { select: userProfileSelect },
+                receiver: { select: userProfileSelect },
+            }
+
         })
         return result;
     } catch (error) {
@@ -143,7 +185,9 @@ export async function acceptFriendRequest(requestId) {
                 where: { id: receiverId },
                 select: userProfileSelect
             }),
-            prisma.chat.create()
+            prisma.chat.create({
+                include: { users: { select: userProfileSelect } }
+            })
         ])
 
         await prisma.chat.update({
@@ -157,7 +201,7 @@ export async function acceptFriendRequest(requestId) {
             }
         })
 
-        return [sender, receiver]
+        return [sender, receiver, chat]
 
     } catch (error) {
         console.log(error);
@@ -226,3 +270,23 @@ export async function updateChatLastMessage(chatId, lastMessage) {
 
 
 }
+
+
+
+async function fn() {
+
+    try {
+        await prisma.request.delete({
+            where: {
+                id: "139794ed-6ccb-4e3c-ba9c-26ba68aff7d5"
+            }
+        })
+
+    } catch (error) {
+        console.log(error);
+
+    }
+
+
+}
+/*fn()*/

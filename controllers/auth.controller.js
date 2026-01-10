@@ -1,6 +1,6 @@
 import { sign, verify } from "../utils/jwt.js";
 import { validateNewUser } from "../middlewares/validate.js";
-import * as model from "./../models/auth.js"
+import * as model from "../models/auth.model.js"
 import { compare, hash } from "../utils/bcrypt.js";
 
 

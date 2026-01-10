@@ -1,5 +1,5 @@
-import { getReceivers } from '../utils/utils.js';
-import * as model from './../models/app.model.js'
+import { getReceiver } from '../utils/utils.js';
+import * as model from '../models/chat.model.js'
 import { io } from '../lib/socket.js';
 export async function getUserFriends(req, res) {
     try {
@@ -52,26 +52,25 @@ export async function getUserFriendsRequestsBy(req, res) {
     }
 }
 
-export async function markMessageAsRead(req, res) {
+export async function markChatAsRead(req, res) {
     try {
-        const userId = req.userId;  // make sure that current userId is the receiver of the message 
+        const userId = req.userId;
 
-        const { messageId } = req.params;
+        const { chatId } = req.params;
 
-        console.log(messageId, '*****');
-
-
-        let message = await model.markMessageAsRead(messageId);
+        let chat = await model.markChatAsRead(chatId, userId);
 
         res.json({ message: 'ok' });
 
-        io.to(message.senderId).emit('messageUpdate', (message));
-        io.to(userId).emit('messageUpdate', (message));
+        const receiver = getReceiver(userId, chat);
+
+        io.to(receiver.id).emit("chatIsRead", chat);
 
     } catch (error) {
         console.log(error);
     }
 }
+
 
 export async function createFriendReqesut(req, res) {
     try {
@@ -96,13 +95,17 @@ export async function acceptFriendRequest(req, res) {
 
         const { requestId } = req.params;
 
-        const [sender, receiver] = await model.acceptFriendRequest(requestId)
+        const [sender, receiver, chat] = await model.acceptFriendRequest(requestId)
 
         res.json({ message: 'success' });
 
         io.to(sender.id).emit("friendsUpdate", receiver);
 
         io.to(receiver).emit("friendsUpdate", sender);
+
+        io.to(sender.id).emit("chatsUpdate", chat);
+
+        io.to(receiver).emit("friendsUpdate", chat);
 
     } catch (error) {
         console.log(error);

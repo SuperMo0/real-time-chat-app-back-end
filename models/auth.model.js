@@ -1,11 +1,12 @@
 import prisma from '../lib/prisma.js'
+
 export async function insertUser(name, email, password) {
     try {
         let user = await prisma.user.create({
             data: {
                 name: name,
                 email: email,
-                password: password
+                password: password,
             },
             select: {
                 id: true,
